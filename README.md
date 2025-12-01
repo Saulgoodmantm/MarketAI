@@ -14,6 +14,8 @@ A comprehensive AI system for market analysis with self-training capabilities, m
   - [x] `dev.py` / `Dev.bat` - Developer access with profile-based authentication
   - [x] `user_version.py` / `UserVersion.bat` - Default user version
 - [x] **Organized Folder Structure** - AI modules organized in `ai/` folder
+- [x] **API Integration** - Integrated AntiPublic, LZT Market, and LolzTeam APIs
+- [x] **Modern GUI** - Tabbed interface with Autobuy, Market Watch, Analytics, and Settings
 
 ## 📁 Project Structure
 
@@ -32,9 +34,12 @@ MarketAI/
 │   ├── detection/       # Screen and web detection
 │   ├── data/            # Shared data management
 │   ├── config/          # Configuration management
+│   ├── api/             # API integrations (AntiPublic, LZT Market, LolzTeam)
+│   ├── gui/             # Modern GUI components and tabs
 │   └── utils/           # Utilities and authentication
 ├── shared_data/          # Shared data across instances
 │   ├── config.json      # Configuration
+│   ├── api_config.json  # API key configuration
 │   ├── models/          # Saved models
 │   ├── training/        # Training results
 │   ├── instances/       # Instance registry
@@ -115,6 +120,19 @@ Executables will be in the `dist/` folder.
 
 ## 🧠 Features
 
+### Modern GUI Interface
+The application features a modern tabbed interface with:
+- **🤖 Autobuy Tab**: Automated purchasing (disabled by default, never saved as enabled for safety)
+- **👁️ Market Watch Tab**: Real-time market monitoring, notifications, and game/category selection
+- **📊 Analytics Tab**: AI-powered market analysis, predictions, and trading tips
+- **⚙️ Settings Tab**: API key configuration for all integrated services
+
+### API Integrations
+Three market-related APIs are integrated:
+- **AntiPublic API**: Data breach checking and credential verification ([Documentation](https://antipublic.readme.io/reference/information))
+- **LZT Market API**: Digital marketplace for account trading ([Documentation](https://lzt-market.readme.io/reference/information))
+- **LolzTeam API**: Forum data, user profiles, and discussions ([Documentation](https://lolzteam.readme.io/reference/information))
+
 ### Multi-Instance Synchronization
 - Shared data prevents duplicate training
 - Error tracking across all instances
@@ -136,6 +154,7 @@ Executables will be in the `dist/` folder.
 - Role-based access control (Admin, Developer, User)
 - Profile-based authentication
 - Secure credential storage
+- Autobuy disabled by default and never persisted as enabled
 
 ## 📊 Configuration
 

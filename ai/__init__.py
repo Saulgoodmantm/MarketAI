@@ -6,6 +6,8 @@ This package provides:
 - Screen and web detection for data collection
 - Multi-instance data synchronization
 - User and developer modes with authentication
+- API integration for market data (AntiPublic, LZT Market, LolzTeam)
+- Modern GUI with Autobuy, Market Watch, Analytics, and Settings tabs
 """
 
 from .core import AIEngine, MarketAIModel
