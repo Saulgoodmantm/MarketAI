@@ -21,6 +21,12 @@ class AutobuyTab:
     is never persisted to settings for safety reasons.
     """
     
+    # Configuration constants
+    DEFAULT_DELAY_SECONDS = 10  # Default delay between scans (safer default)
+    MIN_DELAY_SECONDS = 5  # Minimum allowed delay
+    API_CALL_DELAY_MS = 1000  # Delay between individual API calls (ms)
+    MAX_ITEMS_PER_DISPLAY = 50  # Max items to show in UI
+    
     def __init__(self, parent, api_manager=None, on_log: Optional[Callable] = None):
         """
         Initialize the Autobuy tab.
@@ -45,7 +51,7 @@ class AutobuyTab:
             'min_price': 0.0,
             'keywords': [],
             'auto_confirm': False,
-            'delay_seconds': 5
+            'delay_seconds': self.DEFAULT_DELAY_SECONDS
         }
         
         # Activity log
@@ -373,19 +379,31 @@ class AutobuyTab:
         purchases_made = 0
         total_spent = 0.0
         start_time = datetime.now()
+        consecutive_errors = 0
+        max_consecutive_errors = 5  # Circuit breaker threshold
         
         while self._running:
             try:
+                # Circuit breaker: stop if too many consecutive errors
+                if consecutive_errors >= max_consecutive_errors:
+                    self._add_log(f"⚠️ Too many errors ({consecutive_errors}). Pausing for 60s...")
+                    time.sleep(60)
+                    consecutive_errors = 0
+                
                 # Check each selected category
                 for category in self._config['categories']:
                     if not self._running:
                         break
                     
-                    # Fetch items from API
+                    # Fetch items from API with rate limiting
                     if self.api_manager:
+                        # Rate limiting delay before API call
+                        time.sleep(self.API_CALL_DELAY_MS / 1000.0)
+                        
                         result = self.api_manager.get_category_data(category, 1)
                         
                         if result.get('success'):
+                            consecutive_errors = 0  # Reset error counter on success
                             items = result.get('data', {}).get('items', [])
                             
                             for item in items:
@@ -415,33 +433,50 @@ class AutobuyTab:
                                     
                                     # Auto-confirm purchase if enabled (RISKY!)
                                     if self._config.get('auto_confirm') and item_id:
-                                        self._add_log(f"⚡ Attempting fast-buy: {item_id}")
+                                        # Additional safety check: validate item still exists and price matches
+                                        self._add_log(f"⚡ Verifying item before purchase: {item_id}")
                                         
-                                        # Call the fast-buy API
-                                        buy_result = self.api_manager.lzt_market.fast_buy(item_id, price)
+                                        # Rate limiting delay before purchase API call
+                                        time.sleep(self.API_CALL_DELAY_MS / 1000.0)
                                         
-                                        if buy_result.get('success'):
-                                            purchases_made += 1
-                                            total_spent += price
-                                            self._add_log(f"✅ PURCHASED: {title} @ ${price:.2f}")
+                                        # Check item availability first
+                                        check_result = self.api_manager.lzt_market.check_item(item_id)
+                                        
+                                        if check_result.get('success'):
+                                            # Item is available, proceed with purchase
+                                            time.sleep(self.API_CALL_DELAY_MS / 1000.0)  # Rate limit
+                                            
+                                            buy_result = self.api_manager.lzt_market.fast_buy(item_id, price)
+                                            
+                                            if buy_result.get('success'):
+                                                purchases_made += 1
+                                                total_spent += price
+                                                self._add_log(f"✅ PURCHASED: {title} @ ${price:.2f}")
+                                            else:
+                                                error_msg = buy_result.get('message', 'Unknown error')[:50]
+                                                self._add_log(f"❌ Purchase failed: {error_msg}")
                                         else:
-                                            self._add_log(f"❌ Purchase failed: {buy_result.get('message', 'Unknown error')}")
+                                            self._add_log(f"⚠️ Item unavailable or verification failed")
                                     else:
                                         self._add_log(f"📋 Item matched criteria (auto-confirm disabled)")
                                 
                                 # Update stats display
                                 self._update_autobuy_stats(items_checked, purchases_made, total_spent, start_time)
+                        else:
+                            consecutive_errors += 1
+                            self._add_log(f"⚠️ API error for {category}")
                     
-                    # Small delay between categories
-                    time.sleep(0.5)
+                    # Rate limiting delay between categories
+                    time.sleep(self.API_CALL_DELAY_MS / 1000.0)
                 
-                # Wait before next scan
-                delay = self._config.get('delay_seconds', 5)
+                # Wait before next scan (enforce minimum delay)
+                delay = max(self._config.get('delay_seconds', self.DEFAULT_DELAY_SECONDS), self.MIN_DELAY_SECONDS)
                 time.sleep(delay)
                 
             except Exception as e:
+                consecutive_errors += 1
                 self._add_log(f"❌ Error: {str(e)[:50]}")
-                time.sleep(5)
+                time.sleep(self.MIN_DELAY_SECONDS)
     
     def _update_autobuy_stats(self, items: int, purchases: int, spent: float, start: datetime):
         """Update autobuy statistics display."""

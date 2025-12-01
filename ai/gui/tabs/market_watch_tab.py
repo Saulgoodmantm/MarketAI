@@ -19,6 +19,10 @@ class MarketWatchTab:
     Replaces the autobuy notify feature with customizable watch settings.
     """
     
+    # Default keywords for high-value item detection (can be customized)
+    DEFAULT_HIGH_VALUE_KEYWORDS = ['rare', 'premium', 'exclusive', 'limited', 'og', 'stacked']
+    MAX_ITEMS_DISPLAY = 50  # Maximum items to display in lists
+    
     def __init__(self, parent, api_manager=None, on_notification: Optional[Callable] = None):
         """
         Initialize the Market Watch tab.
@@ -36,6 +40,7 @@ class MarketWatchTab:
         self._watches = []
         self._is_watching = False
         self._watch_thread = None
+        self._high_value_keywords = self.DEFAULT_HIGH_VALUE_KEYWORDS.copy()
         
         # Market data cache
         self._market_data = {}
@@ -525,10 +530,10 @@ class MarketWatchTab:
                             "new"
                         )
                     
-                    # Check for high value items (defined as having special features)
+                    # Check for high value items using configurable keywords
                     if self.stat_vars.get('high_value', ctk.BooleanVar()).get():
                         title = item.get('title', '').lower()
-                        if any(keyword in title for keyword in ['rare', 'premium', 'exclusive', 'limited']):
+                        if any(keyword in title for keyword in self._high_value_keywords):
                             self._add_notification(
                                 "High Value Item",
                                 f"[{category}] {item.get('title', 'Unknown')} - ${price:.2f}",

@@ -17,6 +17,9 @@ class PortfolioTab:
     Portfolio tab for viewing purchased items, account balance, and managing inventory.
     """
     
+    # Configuration constants
+    MAX_ITEMS_DISPLAY = 50  # Maximum items to display in lists
+    
     def __init__(self, parent, api_manager=None, on_notification: Optional[Callable] = None):
         """
         Initialize the Portfolio tab.
@@ -255,8 +258,8 @@ class PortfolioTab:
                 for widget in self.purchased_frame.winfo_children():
                     widget.destroy()
                 
-                # Add items
-                for item in self._purchased_items[:50]:  # Limit to 50
+                # Add items (limited to MAX_ITEMS_DISPLAY)
+                for item in self._purchased_items[:self.MAX_ITEMS_DISPLAY]:
                     self._add_item_card(self.purchased_frame, item)
             
             # Update favorites list
@@ -264,7 +267,7 @@ class PortfolioTab:
                 for widget in self.favorites_frame.winfo_children():
                     widget.destroy()
                 
-                for item in self._favorites[:50]:
+                for item in self._favorites[:self.MAX_ITEMS_DISPLAY]:
                     self._add_item_card(self.favorites_frame, item, is_favorite=True)
                     
         except Exception as e:
@@ -322,3 +325,4 @@ class PortfolioTab:
             'favorites_count': len(self._favorites),
             'last_refresh': self._last_refresh.isoformat() if self._last_refresh else None
         }
+

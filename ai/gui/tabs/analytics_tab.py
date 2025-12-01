@@ -603,8 +603,12 @@ not be the sole basis for purchasing decisions.
             # Get market overview from all configured APIs
             overview = self.api_manager.get_market_overview()
             
-            # Get category data for statistics
-            categories = ['steam', 'fortnite', 'valorant', 'origin', 'genshin-impact']
+            # Get category data for statistics - use API manager's available categories
+            categories = self.api_manager.get_available_categories() if self.api_manager else []
+            # Fallback to default categories if API manager doesn't provide them
+            if not categories:
+                categories = ['steam', 'fortnite', 'valorant', 'origin', 'genshin-impact']
+            
             total_listings = 0
             category_counts = {}
             
