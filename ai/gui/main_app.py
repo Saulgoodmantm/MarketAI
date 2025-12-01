@@ -15,7 +15,8 @@ from datetime import datetime
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 
-from .tabs import AutobuyTab, MarketWatchTab, AnalyticsTab, SettingsTab
+from .tabs import AutobuyTab, MarketWatchTab, AnalyticsTab, SettingsTab, PortfolioTab
+
 
 
 class MarketAIApp:
@@ -170,6 +171,7 @@ class MarketAIApp:
         # Create tabs
         self.autobuy_frame = self.tab_view.add("🤖 Autobuy")
         self.market_watch_frame = self.tab_view.add("👁️ Market Watch")
+        self.portfolio_frame = self.tab_view.add("💼 Portfolio")
         self.analytics_frame = self.tab_view.add("📊 Analytics")
         self.settings_frame = self.tab_view.add("⚙️ Settings")
         
@@ -228,6 +230,15 @@ class MarketAIApp:
         )
         if self.market_watch_tab.frame:
             self.market_watch_tab.frame.pack(fill="both", expand=True)
+        
+        # Initialize Portfolio tab
+        self.portfolio_tab = PortfolioTab(
+            self.portfolio_frame,
+            api_manager=self.api_manager,
+            on_notification=self._add_notification
+        )
+        if self.portfolio_tab.frame:
+            self.portfolio_tab.frame.pack(fill="both", expand=True)
         
         # Initialize Analytics tab
         self.analytics_tab = AnalyticsTab(

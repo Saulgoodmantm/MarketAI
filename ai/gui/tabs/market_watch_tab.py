@@ -517,17 +517,54 @@ class MarketWatchTab:
                 item_id = item.get('item_id', item.get('id'))
                 
                 if item_id not in self._market_data.get(category, {}):
+                    # New listing notification
                     if self.stat_vars.get('new_listings', ctk.BooleanVar()).get():
                         self._add_notification(
                             "New Listing",
                             f"[{category}] {item.get('title', 'Unknown')} - ${price:.2f}",
                             "new"
                         )
+                    
+                    # Check for high value items (defined as having special features)
+                    if self.stat_vars.get('high_value', ctk.BooleanVar()).get():
+                        title = item.get('title', '').lower()
+                        if any(keyword in title for keyword in ['rare', 'premium', 'exclusive', 'limited']):
+                            self._add_notification(
+                                "High Value Item",
+                                f"[{category}] {item.get('title', 'Unknown')} - ${price:.2f}",
+                                "warning"
+                            )
+                else:
+                    # Existing item - check for price drop
+                    old_item = self._market_data[category].get(item_id, {})
+                    old_price = old_item.get('price', 0)
+                    
+                    if old_price > 0 and price < old_price:
+                        price_drop_pct = ((old_price - price) / old_price) * 100
+                        
+                        # Notify if price dropped by more than 5%
+                        if self.stat_vars.get('price_drops', ctk.BooleanVar()).get() and price_drop_pct >= 5:
+                            self._add_notification(
+                                "Price Drop",
+                                f"[{category}] {item.get('title', 'Unknown')}: ${old_price:.2f} → ${price:.2f} ({price_drop_pct:.1f}% off)",
+                                "new"
+                            )
+                            
+                            # Update stats
+                            if hasattr(self, 'stats_labels') and "Price Drops Found" in self.stats_labels:
+                                try:
+                                    current = int(self.stats_labels["Price Drops Found"].cget("text") or "0")
+                                    self.stats_labels["Price Drops Found"].configure(text=str(current + 1))
+                                except Exception:
+                                    pass
                 
-                # Store item
+                # Store/update item
                 if category not in self._market_data:
                     self._market_data[category] = {}
                 self._market_data[category][item_id] = item
+        
+        # Update statistics
+        self._update_watch_stats()
     
     def _refresh_market(self):
         """Manually refresh market data."""
@@ -609,6 +646,28 @@ class MarketWatchTab:
                 text_color="#888888"
             )
             self.no_notif_label.pack(pady=50)
+    
+    def _update_watch_stats(self):
+        """Update watch statistics display."""
+        if not hasattr(self, 'stats_labels'):
+            return
+        
+        try:
+            # Count total items checked
+            total_items = sum(len(items) for items in self._market_data.values())
+            if "Items Checked" in self.stats_labels:
+                self.stats_labels["Items Checked"].configure(text=str(total_items))
+            
+            # Count notifications
+            if "Notifications Sent" in self.stats_labels:
+                self.stats_labels["Notifications Sent"].configure(text=str(len(self._notifications)))
+            
+            # Count new listings  
+            if "New Listings" in self.stats_labels:
+                new_count = sum(1 for n in self._notifications if n.get('title') == 'New Listing')
+                self.stats_labels["New Listings"].configure(text=str(new_count))
+        except Exception:
+            pass  # Widget might be destroyed
     
     def get_config(self) -> Dict[str, Any]:
         """Get current watch configuration."""
