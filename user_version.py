@@ -3,6 +3,17 @@
 MarketAI User Version - Default user interface
 Provides a modern, futuristic interface for using MarketAI.
 
+Features:
+- Autobuy tab (disabled by default, never saved as enabled)
+- Market Watch tab (monitoring, notifications, stats)
+- Analytics tab (AI-powered insights and predictions)
+- Settings tab (API key configuration)
+
+APIs Integrated:
+- AntiPublic API (https://antipublic.readme.io/reference/information)
+- LZT Market API (https://lzt-market.readme.io/reference/information)
+- LolzTeam API (https://lolzteam.readme.io/reference/information)
+
 To create executable:
     pyinstaller --onefile --windowed --name UserVersion user_version.py
 """
@@ -24,6 +35,7 @@ class MarketAIUserApp:
     def __init__(self):
         self.base_dir = Path(__file__).parent.absolute()
         self.engine = None
+        self.api_manager = None
         self.is_running = True
         self.use_gui = False
         
@@ -68,15 +80,23 @@ class MarketAIUserApp:
             if self.engine.initialize():
                 print("[OK] AI Engine initialized")
                 print(f"[*] Instance ID: {self.engine.instance_id[:8]}...")
-                return True
             else:
                 print("[WARNING] Engine initialization incomplete")
-                return True  # Continue anyway
                 
         except ImportError as e:
             print(f"[WARNING] Could not import AI modules: {e}")
             print("[*] Running in limited mode")
-            return True
+        
+        # Initialize API Manager
+        try:
+            from ai.api import APIManager
+            self.api_manager = APIManager()
+            print("[OK] API Manager initialized")
+        except ImportError as e:
+            print(f"[WARNING] Could not import API modules: {e}")
+            self.api_manager = None
+        
+        return True
     
     def try_gui(self) -> bool:
         """Try to start GUI interface."""
@@ -89,7 +109,27 @@ class MarketAIUserApp:
             return False
     
     def run_gui(self):
-        """Run the graphical user interface."""
+        """Run the graphical user interface with all tabs."""
+        try:
+            from ai.gui import MarketAIApp
+            
+            # Create and run the full-featured GUI
+            app = MarketAIApp(
+                api_manager=self.api_manager,
+                ai_engine=self.engine
+            )
+            app.run()
+            
+        except ImportError as e:
+            print(f"[WARNING] Could not load full GUI: {e}")
+            print("[*] Falling back to basic GUI...")
+            self._run_basic_gui()
+        except Exception as e:
+            print(f"[ERROR] GUI failed: {e}")
+            self.run_console()
+    
+    def _run_basic_gui(self):
+        """Run a basic fallback GUI."""
         try:
             import customtkinter as ctk
             
