@@ -1,0 +1,38 @@
+# MarketAI Dependencies
+# Core AI/ML
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+transformers>=4.30.0
+
+# Screen/Visual Detection
+pillow>=10.0.0
+opencv-python>=4.8.0
+pytesseract>=0.3.10
+mss>=9.0.0
+
+# Web Detection/Scraping
+selenium>=4.15.0
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+playwright>=1.40.0
+
+# Database/Shared Data
+redis>=5.0.0
+sqlalchemy>=2.0.0
+filelock>=3.13.0
+
+# UI/Modern Interface
+customtkinter>=5.2.0
+ttkbootstrap>=1.10.0
+
+# Utilities
+pyyaml>=6.0.0
+python-dotenv>=1.0.0
+cryptography>=41.0.0
+psutil>=5.9.0
+
+# Building Executables
+pyinstaller>=6.0.0
