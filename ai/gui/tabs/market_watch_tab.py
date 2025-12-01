@@ -225,7 +225,7 @@ class MarketWatchTab:
             interval_frame,
             from_=10,
             to=300,
-            number_of_steps=29,
+            number_of_steps=58,
             command=self._update_interval_label
         )
         self.interval_slider.set(30)
