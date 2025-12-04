@@ -8,6 +8,7 @@ try:
 except ImportError:
     ctk = None
 
+import random
 from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
 import threading
@@ -724,8 +725,12 @@ class MarketWatchTab:
     def _perform_search(self):
         """Perform market search with API."""
         search_term = self.search_entry.get().strip()
-        if not search_term and not self.api_manager:
-            return
+        
+        # Allow searches with empty term if API is configured, or always allow demo searches
+        api_configured = self.api_manager and self.api_manager.lzt_market.is_configured()
+        if not search_term and not api_configured:
+            # Still allow demo search with empty term
+            pass
         
         # Update UI for searching state
         self.search_btn.configure(state="disabled", text="...")
@@ -781,23 +786,25 @@ class MarketWatchTab:
             # Store results
             self._search_results = results
             
-            # Update UI (schedule on main thread)
-            self._update_search_results_ui(results)
+            # Schedule UI update on main thread for thread safety
+            if self.frame:
+                self.frame.after(0, lambda: self._update_search_results_ui(results))
             
         except Exception as e:
             print(f"[Search Error] {e}")
-            self._update_search_results_ui([])
+            if self.frame:
+                self.frame.after(0, lambda: self._update_search_results_ui([]))
     
     def _get_demo_search_results(self, search_term: str, category: str, min_price: float, max_price: float) -> List[Dict]:
         """Generate demo search results when API is not configured."""
-        import random
+        search_display = search_term if search_term else "Premium"
         
         demo_items = [
-            {"title": f"Steam Account - {search_term} Games", "price": 15.99, "category": "steam", "seller": "TrustedSeller", "rating": 98},
-            {"title": f"Fortnite {search_term} Skins Bundle", "price": 25.50, "category": "fortnite", "seller": "GameStore", "rating": 95},
-            {"title": f"Valorant {search_term} Rank Account", "price": 45.00, "category": "valorant", "seller": "ProGamer", "rating": 100},
-            {"title": f"Origin Premium with {search_term}", "price": 12.99, "category": "origin", "seller": "EASales", "rating": 92},
-            {"title": f"Genshin AR55 {search_term}", "price": 89.99, "category": "genshin-impact", "seller": "GenshinPro", "rating": 97},
+            {"title": f"Steam Account - {search_display} Games", "price": 15.99, "category": "steam", "seller": "TrustedSeller", "rating": 98},
+            {"title": f"Fortnite {search_display} Skins Bundle", "price": 25.50, "category": "fortnite", "seller": "GameStore", "rating": 95},
+            {"title": f"Valorant {search_display} Rank Account", "price": 45.00, "category": "valorant", "seller": "ProGamer", "rating": 100},
+            {"title": f"Origin Premium with {search_display}", "price": 12.99, "category": "origin", "seller": "EASales", "rating": 92},
+            {"title": f"Genshin AR55 {search_display}", "price": 89.99, "category": "genshin-impact", "seller": "GenshinPro", "rating": 97},
         ]
         
         # Filter by category if specified
@@ -1058,9 +1065,13 @@ class MarketWatchTab:
             except Exception as e:
                 print(f"[Market Check Error] {category}: {e}")
         
-        # Update listings display
-        self._update_listings_display(all_items)
-        
+        # Schedule UI update on main thread for thread safety
+        if self.frame:
+            self.frame.after(0, lambda: self._update_listings_display(all_items))
+            self.frame.after(0, self._update_last_update_label)
+    
+    def _update_last_update_label(self):
+        """Update the last update label (thread-safe)."""
         self._last_update = datetime.now()
         if self.last_update_label:
             self.last_update_label.configure(
@@ -1069,8 +1080,6 @@ class MarketWatchTab:
     
     def _get_demo_items(self, category: str) -> List[Dict]:
         """Get demo items for a category when API is not configured."""
-        import random
-        
         titles = {
             'steam': ["Steam Account 500+ Games", "CS2 Prime Status", "Steam Level 100+", "Rare Steam Account"],
             'fortnite': ["OG Renegade Raider", "Stacked Fortnite Account", "Rare Skins Bundle", "Galaxy Skin Account"],
@@ -1096,7 +1105,7 @@ class MarketWatchTab:
         return items
     
     def _update_listings_display(self, items: List[Dict]):
-        """Update the listings display with items."""
+        """Update the listings display with items (must be called from main thread)."""
         try:
             # Clear existing items
             for widget in self.listings_frame.winfo_children():
