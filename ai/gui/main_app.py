@@ -1,5 +1,6 @@
 """
 MarketAI Main Application - Primary GUI window integrating all tabs and features
+Enhanced with futuristic design and animations
 """
 
 try:
@@ -18,11 +19,27 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 from .tabs import AutobuyTab, MarketWatchTab, AnalyticsTab, SettingsTab, PortfolioTab
 
 
+# Futuristic color scheme
+COLORS = {
+    'primary': '#00D4FF',      # Cyan
+    'secondary': '#7B2CBF',    # Purple
+    'accent': '#E100FF',       # Magenta
+    'success': '#00FF88',      # Neon green
+    'warning': '#FFB800',      # Gold
+    'danger': '#FF3366',       # Red
+    'bg_dark': '#0D1117',      # Dark background
+    'bg_card': '#161B22',      # Card background
+    'bg_header': '#1C2128',    # Header background
+    'text_primary': '#FFFFFF',
+    'text_dim': '#8B949E',
+    'glow': '#00D4FF'
+}
+
 
 class MarketAIApp:
     """
     Main MarketAI application window.
-    Integrates all tabs and provides unified market analysis interface.
+    Features modern futuristic design with animations and real-time updates.
     """
     
     def __init__(self, api_manager=None, ai_engine=None):
@@ -43,15 +60,18 @@ class MarketAIApp:
         self._is_running = False
         self._notifications = []
         
-        # Configure appearance
+        # Configure appearance with dark futuristic theme
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
         
         # Create main window
         self.root = ctk.CTk()
         self.root.title("MarketAI - Advanced Market Analysis")
-        self.root.geometry("1400x900")
-        self.root.minsize(1200, 800)
+        self.root.geometry("1500x950")
+        self.root.minsize(1300, 850)
+        
+        # Set window background
+        self.root.configure(fg_color=COLORS['bg_dark'])
         
         # Initialize UI
         self._create_ui()
@@ -61,11 +81,14 @@ class MarketAIApp:
         
         # Load saved settings
         self._load_settings()
+        
+        # Start animations
+        self._start_header_animation()
     
     def _create_ui(self):
-        """Create the main UI structure."""
+        """Create the main UI structure with futuristic design."""
         # Main container
-        self.main_frame = ctk.CTkFrame(self.root, corner_radius=0)
+        self.main_frame = ctk.CTkFrame(self.root, corner_radius=0, fg_color="transparent")
         self.main_frame.pack(fill="both", expand=True)
         
         # Create header
@@ -78,98 +101,142 @@ class MarketAIApp:
         self._create_footer()
     
     def _create_header(self):
-        """Create application header."""
-        header = ctk.CTkFrame(self.main_frame, height=80, corner_radius=0)
+        """Create futuristic application header with glow effect."""
+        header = ctk.CTkFrame(
+            self.main_frame, 
+            height=90, 
+            corner_radius=0,
+            fg_color=COLORS['bg_header']
+        )
         header.pack(fill="x", padx=0, pady=0)
         header.pack_propagate(False)
         
-        # Logo and title
-        title_frame = ctk.CTkFrame(header, fg_color="transparent")
-        title_frame.pack(side="left", padx=20, pady=10)
+        # Add subtle border glow effect
+        glow_line = ctk.CTkFrame(header, height=2, fg_color=COLORS['primary'])
+        glow_line.pack(side="bottom", fill="x")
         
-        # Logo text
-        logo_label = ctk.CTkLabel(
+        # Logo and title with futuristic styling
+        title_frame = ctk.CTkFrame(header, fg_color="transparent")
+        title_frame.pack(side="left", padx=25, pady=15)
+        
+        # Animated logo icon
+        self.logo_icon = ctk.CTkLabel(
             title_frame,
-            text="🤖 MARKET",
-            font=ctk.CTkFont(size=28, weight="bold"),
-            text_color="#00D4FF"
+            text="⚡",
+            font=ctk.CTkFont(size=36),
+            text_color=COLORS['primary']
+        )
+        self.logo_icon.pack(side="left", padx=(0, 10))
+        
+        # Logo text with gradient effect (simulated)
+        logo_text_frame = ctk.CTkFrame(title_frame, fg_color="transparent")
+        logo_text_frame.pack(side="left")
+        
+        logo_label = ctk.CTkLabel(
+            logo_text_frame,
+            text="MARKET",
+            font=ctk.CTkFont(size=32, weight="bold"),
+            text_color=COLORS['primary']
         )
         logo_label.pack(side="left")
         
         ai_label = ctk.CTkLabel(
-            title_frame,
+            logo_text_frame,
             text="AI",
-            font=ctk.CTkFont(size=28, weight="bold"),
-            text_color="#FFFFFF"
+            font=ctk.CTkFont(size=32, weight="bold"),
+            text_color=COLORS['text_primary']
         )
         ai_label.pack(side="left")
         
-        # Subtitle
+        # Subtitle with version
         subtitle = ctk.CTkLabel(
             title_frame,
-            text="Advanced Market Analysis & Prediction",
+            text="v2.0 • Advanced Market Analysis & Automation",
             font=ctk.CTkFont(size=11),
-            text_color="#888888"
+            text_color=COLORS['text_dim']
         )
-        subtitle.pack(side="left", padx=20)
+        subtitle.pack(side="left", padx=25)
         
         # Right side - Status and controls
         controls_frame = ctk.CTkFrame(header, fg_color="transparent")
-        controls_frame.pack(side="right", padx=20, pady=10)
+        controls_frame.pack(side="right", padx=25, pady=15)
         
-        # API Status indicators
-        self.api_status_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
-        self.api_status_frame.pack(side="left", padx=20)
+        # API Status indicators with modern design
+        self.api_status_frame = ctk.CTkFrame(
+            controls_frame, 
+            fg_color=COLORS['bg_card'],
+            corner_radius=10
+        )
+        self.api_status_frame.pack(side="left", padx=15, pady=5)
         
         self.api_indicators = {}
-        apis = [("AP", "AntiPublic"), ("LM", "LZT Market"), ("LT", "LolzTeam")]
+        apis = [
+            ("AP", "AntiPublic", COLORS['danger']),
+            ("LM", "LZT Market", COLORS['danger']),
+            ("LT", "LolzTeam", COLORS['danger'])
+        ]
         
-        for short, full in apis:
+        for short, full, color in apis:
             indicator_frame = ctk.CTkFrame(self.api_status_frame, fg_color="transparent")
-            indicator_frame.pack(side="left", padx=5)
+            indicator_frame.pack(side="left", padx=8, pady=8)
             
             self.api_indicators[short] = ctk.CTkLabel(
                 indicator_frame,
                 text=f"● {short}",
-                font=ctk.CTkFont(size=10),
-                text_color="#FF6B6B"  # Red = not configured
+                font=ctk.CTkFont(size=11, weight="bold"),
+                text_color=color
             )
             self.api_indicators[short].pack()
         
-        # Notification bell
+        # Notification button with badge
+        self.notif_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
+        self.notif_frame.pack(side="left", padx=10)
+        
         self.notif_btn = ctk.CTkButton(
-            controls_frame,
+            self.notif_frame,
             text="🔔",
-            width=40,
-            height=40,
+            width=50,
+            height=50,
+            font=ctk.CTkFont(size=22),
+            fg_color=COLORS['bg_card'],
+            hover_color=COLORS['primary'],
+            corner_radius=12,
             command=self._show_notifications
         )
-        self.notif_btn.pack(side="left", padx=5)
+        self.notif_btn.pack()
         
-        # Time display
+        # Time display with modern styling
+        time_frame = ctk.CTkFrame(controls_frame, fg_color=COLORS['bg_card'], corner_radius=10)
+        time_frame.pack(side="left", padx=10, pady=5)
+        
         self.time_label = ctk.CTkLabel(
-            controls_frame,
+            time_frame,
             text=datetime.now().strftime("%H:%M"),
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color=COLORS['primary']
         )
-        self.time_label.pack(side="left", padx=10)
+        self.time_label.pack(padx=15, pady=8)
         
         # Update time every second
         self._update_time()
     
     def _create_content_area(self):
-        """Create main content area with tabs."""
-        # Tab container
+        """Create main content area with modern tab design."""
+        # Tab container with futuristic styling
         self.tab_view = ctk.CTkTabview(
             self.main_frame,
-            segmented_button_fg_color="#2B2B2B",
-            segmented_button_selected_color="#00D4FF",
-            segmented_button_selected_hover_color="#00A8CC"
+            fg_color=COLORS['bg_card'],
+            segmented_button_fg_color=COLORS['bg_dark'],
+            segmented_button_selected_color=COLORS['primary'],
+            segmented_button_selected_hover_color=COLORS['secondary'],
+            segmented_button_unselected_color=COLORS['bg_header'],
+            segmented_button_unselected_hover_color=COLORS['bg_card'],
+            corner_radius=15
         )
-        self.tab_view.pack(fill="both", expand=True, padx=10, pady=5)
+        self.tab_view.pack(fill="both", expand=True, padx=15, pady=10)
         
-        # Create tabs
-        self.autobuy_frame = self.tab_view.add("🤖 Autobuy")
+        # Create tabs with icons
+        self.autobuy_frame = self.tab_view.add("⚡ Autobuy")
         self.market_watch_frame = self.tab_view.add("👁️ Market Watch")
         self.portfolio_frame = self.tab_view.add("💼 Portfolio")
         self.analytics_frame = self.tab_view.add("📊 Analytics")
@@ -179,37 +246,79 @@ class MarketAIApp:
         self.tab_view.set("👁️ Market Watch")
     
     def _create_footer(self):
-        """Create footer/status bar."""
-        footer = ctk.CTkFrame(self.main_frame, height=30, corner_radius=0)
+        """Create modern footer/status bar."""
+        footer = ctk.CTkFrame(
+            self.main_frame, 
+            height=40, 
+            corner_radius=0,
+            fg_color=COLORS['bg_header']
+        )
         footer.pack(fill="x", padx=0, pady=0, side="bottom")
         footer.pack_propagate(False)
         
-        # Left side - Status message
-        self.status_label = ctk.CTkLabel(
-            footer,
-            text="Ready",
+        # Top glow line
+        glow_line = ctk.CTkFrame(footer, height=1, fg_color=COLORS['bg_card'])
+        glow_line.pack(side="top", fill="x")
+        
+        # Left side - Status message with icon
+        status_frame = ctk.CTkFrame(footer, fg_color="transparent")
+        status_frame.pack(side="left", padx=15, pady=8)
+        
+        self.status_indicator = ctk.CTkLabel(
+            status_frame,
+            text="●",
             font=ctk.CTkFont(size=10),
-            text_color="#888888"
+            text_color=COLORS['success']
         )
-        self.status_label.pack(side="left", padx=10)
+        self.status_indicator.pack(side="left", padx=(0, 5))
+        
+        self.status_label = ctk.CTkLabel(
+            status_frame,
+            text="System Ready",
+            font=ctk.CTkFont(size=11),
+            text_color=COLORS['text_dim']
+        )
+        self.status_label.pack(side="left")
         
         # Right side - Version and connection status
-        version_label = ctk.CTkLabel(
-            footer,
-            text="MarketAI v1.0.0",
-            font=ctk.CTkFont(size=10),
-            text_color="#666666"
-        )
-        version_label.pack(side="right", padx=10)
+        right_frame = ctk.CTkFrame(footer, fg_color="transparent")
+        right_frame.pack(side="right", padx=15, pady=8)
         
         # Connection status
         self.connection_label = ctk.CTkLabel(
-            footer,
-            text="● Connected",
-            font=ctk.CTkFont(size=10),
-            text_color="#2ECC71"
+            right_frame,
+            text="● Online",
+            font=ctk.CTkFont(size=11),
+            text_color=COLORS['success']
         )
-        self.connection_label.pack(side="right", padx=10)
+        self.connection_label.pack(side="right", padx=15)
+        
+        # Version
+        version_label = ctk.CTkLabel(
+            right_frame,
+            text="MarketAI v2.0",
+            font=ctk.CTkFont(size=11),
+            text_color=COLORS['text_dim']
+        )
+        version_label.pack(side="right")
+    
+    def _start_header_animation(self):
+        """Start subtle header animations."""
+        self._animate_logo()
+    
+    def _animate_logo(self):
+        """Animate the logo icon."""
+        try:
+            icons = ["⚡", "🔥", "💎", "✨", "⚡"]
+            current_icon = self.logo_icon.cget("text")
+            current_idx = icons.index(current_icon) if current_icon in icons else 0
+            next_idx = (current_idx + 1) % len(icons)
+            self.logo_icon.configure(text=icons[next_idx])
+            
+            # Schedule next animation frame
+            self.root.after(3000, self._animate_logo)
+        except Exception:
+            pass  # Widget might be destroyed
     
     def _init_tabs(self):
         """Initialize all tab components."""
@@ -264,7 +373,7 @@ class MarketAIApp:
         self.root.after(1000, self._update_time)
     
     def _update_api_status(self):
-        """Update API status indicators."""
+        """Update API status indicators with modern colors."""
         if not self.api_manager:
             return
         
@@ -280,35 +389,41 @@ class MarketAIApp:
             api_status = status.get(api_name, {})
             if api_status.get('configured'):
                 self.api_indicators[short].configure(
-                    text_color="#2ECC71"  # Green = configured
+                    text_color=COLORS['success']  # Green = configured
                 )
             else:
                 self.api_indicators[short].configure(
-                    text_color="#FF6B6B"  # Red = not configured
+                    text_color=COLORS['danger']  # Red = not configured
                 )
     
     def _show_notifications(self):
-        """Show notifications popup."""
+        """Show modern notifications popup."""
         # Create notification popup
         popup = ctk.CTkToplevel(self.root)
         popup.title("Notifications")
-        popup.geometry("400x500")
+        popup.geometry("450x550")
         popup.transient(self.root)
+        popup.configure(fg_color=COLORS['bg_dark'])
         
         # Header
-        header = ctk.CTkFrame(popup)
-        header.pack(fill="x", padx=10, pady=10)
+        header = ctk.CTkFrame(popup, fg_color=COLORS['bg_header'], corner_radius=0)
+        header.pack(fill="x", padx=0, pady=0)
         
         ctk.CTkLabel(
             header,
-            text="Notifications",
-            font=ctk.CTkFont(size=16, weight="bold")
-        ).pack(side="left", padx=10)
+            text="🔔 Notifications",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color=COLORS['primary']
+        ).pack(side="left", padx=20, pady=15)
         
         ctk.CTkButton(
             header,
             text="Clear All",
-            width=80,
+            width=90,
+            height=32,
+            font=ctk.CTkFont(size=11),
+            fg_color=COLORS['danger'],
+            hover_color="#CC2952",
             command=lambda: self._clear_notifications(popup)
         ).pack(side="right", padx=10)
         
