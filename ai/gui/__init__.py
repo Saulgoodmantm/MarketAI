@@ -7,7 +7,8 @@ from .tabs import (
     AutobuyTab,
     MarketWatchTab,
     AnalyticsTab,
-    SettingsTab
+    SettingsTab,
+    PortfolioTab
 )
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     'AutobuyTab',
     'MarketWatchTab',
     'AnalyticsTab',
-    'SettingsTab'
+    'SettingsTab',
+    'PortfolioTab'
 ]

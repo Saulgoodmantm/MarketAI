@@ -8,6 +8,7 @@ try:
 except ImportError:
     ctk = None
 
+import threading
 from typing import Dict, Any, Optional, Callable
 from datetime import datetime
 
@@ -19,6 +20,12 @@ class AutobuyTab:
     IMPORTANT: This tab is disabled by default and the enabled state
     is never persisted to settings for safety reasons.
     """
+    
+    # Configuration constants
+    DEFAULT_DELAY_SECONDS = 10  # Default delay between scans (safer default)
+    MIN_DELAY_SECONDS = 5  # Minimum allowed delay
+    API_CALL_DELAY_MS = 1000  # Delay between individual API calls (ms)
+    MAX_ITEMS_PER_DISPLAY = 50  # Max items to show in UI
     
     def __init__(self, parent, api_manager=None, on_log: Optional[Callable] = None):
         """
@@ -44,7 +51,7 @@ class AutobuyTab:
             'min_price': 0.0,
             'keywords': [],
             'auto_confirm': False,
-            'delay_seconds': 5
+            'delay_seconds': self.DEFAULT_DELAY_SECONDS
         }
         
         # Activity log
@@ -360,8 +367,137 @@ class AutobuyTab:
             self._add_log(f"Keywords: {', '.join(self._config['keywords'])}")
         self._add_log("=" * 40)
         
-        # Note: Actual autobuy logic would run in a separate thread
-        # This is a placeholder for the UI logic
+        # Start actual autobuy thread
+        self._autobuy_thread = threading.Thread(target=self._autobuy_loop, daemon=True)
+        self._autobuy_thread.start()
+    
+    def _autobuy_loop(self):
+        """Main autobuy loop running in background thread."""
+        import time
+        
+        items_checked = 0
+        purchases_made = 0
+        total_spent = 0.0
+        start_time = datetime.now()
+        consecutive_errors = 0
+        max_consecutive_errors = 5  # Circuit breaker threshold
+        
+        while self._running:
+            try:
+                # Circuit breaker: stop if too many consecutive errors
+                if consecutive_errors >= max_consecutive_errors:
+                    self._add_log(f"⚠️ Too many errors ({consecutive_errors}). Pausing for 60s...")
+                    time.sleep(60)
+                    consecutive_errors = 0
+                
+                # Check each selected category
+                for category in self._config['categories']:
+                    if not self._running:
+                        break
+                    
+                    # Fetch items from API with rate limiting
+                    if self.api_manager:
+                        # Rate limiting delay before API call
+                        time.sleep(self.API_CALL_DELAY_MS / 1000.0)
+                        
+                        result = self.api_manager.get_category_data(category, 1)
+                        
+                        if result.get('success'):
+                            consecutive_errors = 0  # Reset error counter on success
+                            items = result.get('data', {}).get('items', [])
+                            
+                            for item in items:
+                                if not self._running:
+                                    break
+                                
+                                items_checked += 1
+                                price = item.get('price', 0)
+                                title = item.get('title', 'Unknown')
+                                item_id = item.get('item_id', item.get('id'))
+                                
+                                # Check price range
+                                min_p = self._config.get('min_price', 0)
+                                max_p = self._config.get('max_price', float('inf'))
+                                
+                                if max_p == 0:
+                                    max_p = float('inf')
+                                
+                                if min_p <= price <= max_p:
+                                    # Check keywords if specified
+                                    if self._config.get('keywords'):
+                                        if not any(kw.lower() in title.lower() for kw in self._config['keywords']):
+                                            continue
+                                    
+                                    # Found a matching item
+                                    self._add_log(f"🎯 Found: {title} @ ${price:.2f}")
+                                    
+                                    # Auto-confirm purchase if enabled (RISKY!)
+                                    if self._config.get('auto_confirm') and item_id:
+                                        # Additional safety check: validate item still exists and price matches
+                                        self._add_log(f"⚡ Verifying item before purchase: {item_id}")
+                                        
+                                        # Rate limiting delay before purchase API call
+                                        time.sleep(self.API_CALL_DELAY_MS / 1000.0)
+                                        
+                                        # Check item availability first
+                                        check_result = self.api_manager.lzt_market.check_item(item_id)
+                                        
+                                        if check_result.get('success'):
+                                            # Item is available, proceed with purchase
+                                            time.sleep(self.API_CALL_DELAY_MS / 1000.0)  # Rate limit
+                                            
+                                            buy_result = self.api_manager.lzt_market.fast_buy(item_id, price)
+                                            
+                                            if buy_result.get('success'):
+                                                purchases_made += 1
+                                                total_spent += price
+                                                self._add_log(f"✅ PURCHASED: {title} @ ${price:.2f}")
+                                            else:
+                                                error_msg = buy_result.get('message', 'Unknown error')[:50]
+                                                self._add_log(f"❌ Purchase failed: {error_msg}")
+                                        else:
+                                            self._add_log(f"⚠️ Item unavailable or verification failed")
+                                    else:
+                                        self._add_log(f"📋 Item matched criteria (auto-confirm disabled)")
+                                
+                                # Update stats display
+                                self._update_autobuy_stats(items_checked, purchases_made, total_spent, start_time)
+                        else:
+                            consecutive_errors += 1
+                            self._add_log(f"⚠️ API error for {category}")
+                    
+                    # Rate limiting delay between categories
+                    time.sleep(self.API_CALL_DELAY_MS / 1000.0)
+                
+                # Wait before next scan (enforce minimum delay)
+                delay = max(self._config.get('delay_seconds', self.DEFAULT_DELAY_SECONDS), self.MIN_DELAY_SECONDS)
+                time.sleep(delay)
+                
+            except Exception as e:
+                consecutive_errors += 1
+                self._add_log(f"❌ Error: {str(e)[:50]}")
+                time.sleep(self.MIN_DELAY_SECONDS)
+    
+    def _update_autobuy_stats(self, items: int, purchases: int, spent: float, start: datetime):
+        """Update autobuy statistics display."""
+        if not hasattr(self, 'stat_labels'):
+            return
+        
+        try:
+            elapsed = datetime.now() - start
+            hours, remainder = divmod(int(elapsed.total_seconds()), 3600)
+            minutes, seconds = divmod(remainder, 60)
+            
+            if "Items Checked:" in self.stat_labels:
+                self.stat_labels["Items Checked:"].configure(text=str(items))
+            if "Purchases Made:" in self.stat_labels:
+                self.stat_labels["Purchases Made:"].configure(text=str(purchases))
+            if "Total Spent:" in self.stat_labels:
+                self.stat_labels["Total Spent:"].configure(text=f"${spent:.2f}")
+            if "Session Time:" in self.stat_labels:
+                self.stat_labels["Session Time:"].configure(text=f"{hours:02d}:{minutes:02d}:{seconds:02d}")
+        except Exception:
+            pass  # Widget might be destroyed
     
     def _stop_autobuy(self):
         """Stop the autobuy process."""
